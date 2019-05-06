@@ -108,7 +108,7 @@ app.get('/s3signedurl', function(req, res) {
       console.log('Error getting signed URL from S3.');
       res.json({ success: false, message: 'Signed ULR error', urls: fileurls});
     } else {
-      filesurls[0] = url;
+      fileurls[0] = url;
       console.log('Signed URL: ', fileurls[0]);
       res.json({success: true, message: 'AWS S3 Signed URL generated successfully.', urls: fileurls})
     }
