@@ -6,6 +6,9 @@ var multer = require('multer');
 var cors = require('cors')
 var fs = require('fs');
 var os = require('os');
+var AWS = require('aws-sdk');
+var s3 = new AWS.S3({accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY})
+
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'public')
@@ -88,6 +91,28 @@ app.get('/corpus', function (req, res) {
   });
   res.setHeader("Access-Control-Allow-Origin", "*");  
   res.json({total: total, trained: trained, trained_ratio: trained/total, untrained: total - trained, untrained_ratio: (total - trained)/total });
+});
+
+app.get('/s3signedurl', function(req, res) {
+  var fileurls = [];
+
+  const signed_url_ttl = 60 * 60;
+  const bucket_name = process.env.S3_BUCKET_NAME;
+  const file_name = 'corpus' + Date.now() + '.' + req.body.file_type; 
+  const content_type = 'image/' + req.body.file_type;
+
+  const params = {Bucket: bucket_name, Key: file_name, Expires: signed_url_ttl, ACL: 'bucket-owner-full-control', ContentType: content_type};
+
+  s3.getSignedUrl('putObject', params, function(err, url) {
+    if (err) {
+      console.log('Error getting signed URL from S3.');
+      res.json({ success: false, message: 'Signed ULR error', urls: fileurls});
+    } else {
+      filesurls[0] = url;
+      console.log('Signed URL: ', fileurls[0]);
+      res.json({success: true, message: 'AWS S3 Signed URL generated successfully.', urls: fileurls})
+    }
+  });
 });
 
 function getHostname(req) {
