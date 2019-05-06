@@ -98,8 +98,8 @@ app.get('/s3signedurl', function(req, res) {
 
   const signed_url_ttl = 60 * 60;
   const bucket_name = process.env.S3_BUCKET_NAME;
-  const file_name = 'corpus' + Date.now() + '.' + req.body.file_type; 
-  const content_type = 'image/' + req.body.file_type;
+  const file_name = 'corpus' + Date.now() + '.' + req.query.content; 
+  const content_type = 'image/' + req.query.content;
 
   const params = {Bucket: bucket_name, Key: file_name, Expires: signed_url_ttl, ACL: 'bucket-owner-full-control', ContentType: content_type};
 
