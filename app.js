@@ -9,6 +9,14 @@ var AWS = require('aws-sdk');
 var s3 = new AWS.S3({accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY})
 require('dotenv').config();
 
+var pg = require("pg");
+
+const client = new pg.Client({
+  connectionString: process.env.DATABASE_URL,
+});
+client.connect();
+
+
 var app = express();
 app.use(cors());
 app.use(logger('dev'));
@@ -18,59 +26,72 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/save', function (req, res, next) {
-  var label = req.body.image.replace(getHostname(req), '') + ' ' + req.body.food + ' ' + req.body.spicy + os.EOL;
-  fs.appendFile('label.txt', label, function (err) {
+  var query = 'INSERT INTO waymo_spice_labels (image_url, food_label, spicy_label) VALUES (\'' + req.body.image.split('/').pop() + '\', ' + req.body.food + ', ' + req.body.spicy + ');';
+  console.log(query);
+  client.query(query, (err, result) => {
     if (err) throw err;
-    console.log('Updated labels!');
+    for (let row of result.rows) {
+      console.log(JSON.stringify(row));
+    }
+    res.setHeader("Access-Control-Allow-Origin", "*");  
+    res.json({ "msg": "saved"});
   });
-  res.setHeader("Access-Control-Allow-Origin", "*");  
-  res.json({ "msg": "saved"});
 });
 
 app.get('/train', function (req, res) {
   var itemsResponse = {items : []};
-  var labels = '';
-  try {
-    labels = fs.readFileSync('label.txt', 'utf8');
-  } catch (err) {
-    console.log('labels file does not exist');
-  }
+  var trainedItems = {};
+  var query = 'SELECT image_url FROM waymo_spice_labels';
+  console.log(query);
+  client.query(query, (err, result) => {
+    if (err) throw err;
+    for (let row of result.rows) {
+      trainedItems[row["image_url"]] = true;
+    }
+    
 
   var params = { 
     Bucket: 'waymo-spice-corpus',
    }
-
-  s3.listObjects(params, function (err, data) {
-    if(err)throw err;
-    data.Contents.forEach(function(content) {
-      itemsResponse.items.push({
-        train: true,
-        image: 'https://s3.amazonaws.com/' + data.Name + '/' + content.Key,
-        food: null,
-        spicy: null,
+    s3.listObjects(params, function (err, data) {
+      if(err)throw err;
+      data.Contents.forEach(function(content) {
+        if (!trainedItems[content.Key]) {
+        itemsResponse.items.push({
+          train: true,
+          image: 'https://s3.amazonaws.com/' + data.Name + '/' + content.Key,
+          food: null,
+          spicy: null,
+        });
+      }
       });
-    });
-
-    res.setHeader("Access-Control-Allow-Origin", "*");  
-    res.json(itemsResponse);
-   });
+      res.setHeader("Access-Control-Allow-Origin", "*");  
+      res.json(itemsResponse);
+     });
+  });
 });
 
 app.get('/corpus', function (req, res) {
   var total = 0;
   var trained = 0; 
 
-  var params = { 
-    Bucket: 'waymo-spice-corpus',
-   }
-   
-   s3.listObjects(params, function (err, data) {
-    if(err)throw err;
-    
-    total = data.Contents.length;
-    res.setHeader("Access-Control-Allow-Origin", "*");  
-    res.json({total: total, trained: trained, trained_ratio: trained/total, untrained: total - trained, untrained_ratio: (total - trained)/total });
-   });
+  client.query('SELECT image_url FROM waymo_spice_labels;', (err, result) => {
+    if (err) throw err;
+    for (let row of result.rows) {
+      trained++;
+    }
+    var params = { 
+      Bucket: 'waymo-spice-corpus',
+     }
+     
+     s3.listObjects(params, function (err, data) {
+      if(err)throw err;
+      
+      total = data.Contents.length;
+      res.setHeader("Access-Control-Allow-Origin", "*");  
+      res.json({total: total, trained: trained, trained_ratio: trained/total, untrained: total - trained, untrained_ratio: (total - trained)/total });
+     });
+  });
 });
 
 app.get('/s3signedurl', function(req, res) {
