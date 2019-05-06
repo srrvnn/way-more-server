@@ -7,19 +7,15 @@ var fs = require('fs');
 var os = require('os');
 var AWS = require('aws-sdk');
 var s3 = new AWS.S3({accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY})
-
-var indexRouter = require('./routes/index');
+require('dotenv').config();
 
 var app = express();
-
 app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/', indexRouter);
 
 app.post('/save', function (req, res, next) {
   var label = req.body.image.replace(getHostname(req), '') + ' ' + req.body.food + ' ' + req.body.spicy + os.EOL;
@@ -39,39 +35,42 @@ app.get('/train', function (req, res) {
   } catch (err) {
     console.log('labels file does not exist');
   }
-  fs.readdirSync('public/').forEach(file => {
-    if (file.includes('corpus') && !labels.includes(file)) {
+
+  var params = { 
+    Bucket: 'waymo-spice-corpus',
+   }
+
+  s3.listObjects(params, function (err, data) {
+    if(err)throw err;
+    data.Contents.forEach(function(content) {
       itemsResponse.items.push({
         train: true,
-        image: getHostname(req) + file,
+        image: 'https://s3.amazonaws.com/' + data.Name + '/' + content.Key,
         food: null,
         spicy: null,
       });
-    }
-  });
-  res.setHeader("Access-Control-Allow-Origin", "*");  
-  res.json(itemsResponse);
+    });
+
+    res.setHeader("Access-Control-Allow-Origin", "*");  
+    res.json(itemsResponse);
+   });
 });
 
 app.get('/corpus', function (req, res) {
   var total = 0;
   var trained = 0; 
-  var labels = '';
-  try {
-    labels = fs.readFileSync('label.txt', 'utf8');
-  } catch (err) {
-    console.log('labels file does not exist');
-  }
-  fs.readdirSync('public/').forEach(file => {
-    if (file.includes('corpus')) {
-      total++;
-      if (labels.includes(file)) {
-        trained++;
-      }
-    }
-  });
-  res.setHeader("Access-Control-Allow-Origin", "*");  
-  res.json({total: total, trained: trained, trained_ratio: trained/total, untrained: total - trained, untrained_ratio: (total - trained)/total });
+
+  var params = { 
+    Bucket: 'waymo-spice-corpus',
+   }
+   
+   s3.listObjects(params, function (err, data) {
+    if(err)throw err;
+    
+    total = data.Contents.length;
+    res.setHeader("Access-Control-Allow-Origin", "*");  
+    res.json({total: total, trained: trained, trained_ratio: trained/total, untrained: total - trained, untrained_ratio: (total - trained)/total });
+   });
 });
 
 app.get('/s3signedurl', function(req, res) {
@@ -87,7 +86,7 @@ app.get('/s3signedurl', function(req, res) {
   s3.getSignedUrl('putObject', params, function(err, url) {
     if (err) {
       console.log('Error getting signed URL from S3.');
-      res.json({ success: false, message: 'Signed ULR error', urls: fileurls});
+      res.json({ success: false, message: 'Signed URL error', urls: fileurls});
     } else {
       fileurls[0] = url;
       console.log('Signed URL: ', fileurls[0]);

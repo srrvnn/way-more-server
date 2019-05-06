@@ -49,3 +49,6 @@ Thumbs.db
 label.txt
 corpus*.jpg
 corpus*.png
+
+# Environment Files
+.env
