@@ -33,6 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 
 app.post('/upload', upload.single('fileKey'), function (req, res, next) {
+  res.setHeader("Access-Control-Allow-Origin", "*");  
   res.json({ "msg": "saved " + req.file.filename });
 });
 
@@ -42,6 +43,7 @@ app.post('/save', function (req, res, next) {
     if (err) throw err;
     console.log('Updated labels!');
   });
+  res.setHeader("Access-Control-Allow-Origin", "*");  
   res.json({ "msg": "saved"});
 });
 
@@ -63,6 +65,7 @@ app.get('/train', function (req, res) {
       });
     }
   });
+  res.setHeader("Access-Control-Allow-Origin", "*");  
   res.json(itemsResponse);
 });
 
@@ -83,6 +86,7 @@ app.get('/corpus', function (req, res) {
       }
     }
   });
+  res.setHeader("Access-Control-Allow-Origin", "*");  
   res.json({total: total, trained: trained, trained_ratio: trained/total, untrained: total - trained, untrained_ratio: (total - trained)/total });
 });
 
