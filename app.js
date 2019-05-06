@@ -2,25 +2,11 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var multer = require('multer');
 var cors = require('cors')
 var fs = require('fs');
 var os = require('os');
 var AWS = require('aws-sdk');
 var s3 = new AWS.S3({accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY})
-
-var storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'public')
-  },
-  filename: function (req, file, cb) {
-    fileExtension = file.originalname.split(/[. ]+/).pop();
-    if (['jpg', 'png'].includes(fileExtension)) {
-      cb(null, 'corpus' + Date.now() + '.' + fileExtension);
-    }
-  }
-})
-var upload = multer({ storage: storage });
 
 var indexRouter = require('./routes/index');
 
@@ -34,11 +20,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-
-app.post('/upload', upload.single('fileKey'), function (req, res, next) {
-  res.setHeader("Access-Control-Allow-Origin", "*");  
-  res.json({ "msg": "saved " + req.file.filename });
-});
 
 app.post('/save', function (req, res, next) {
   var label = req.body.image.replace(getHostname(req), '') + ' ' + req.body.food + ' ' + req.body.spicy + os.EOL;
@@ -98,7 +79,7 @@ app.get('/s3signedurl', function(req, res) {
 
   const signed_url_ttl = 60 * 60;
   const bucket_name = process.env.S3_BUCKET_NAME;
-  const file_name = 'corpus' + Date.now() + '.' + req.query.content_type; 
+  const file_name = 'corpus' + Date.now() + '.' + req.query.extension; 
   const content_type = req.query.content_type;
 
   const params = {Bucket: bucket_name, Key: file_name, Expires: signed_url_ttl, ACL: 'bucket-owner-full-control', ContentType: content_type};
