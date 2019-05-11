@@ -1,6 +1,8 @@
-[ ] cleanup CORS repeated code
-[ ] move angular code to express, and unify repository
-[ ] write tests
+To do
+- cleanup CORS repeated code
+- move angular code to express, and unify repository
+- write tests
 
-[x] modularize database connection and client
-[x] make API restful. entities: images (get, post), labels (post)
+Finished
+- modularize database connection and client
+- make API restful. entities: images (get, post), labels (post)
