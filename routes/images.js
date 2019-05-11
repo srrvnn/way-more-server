@@ -4,34 +4,34 @@ const express = require("express");
 var router = express.Router();
 
 router.get("/untrained", function(req, res, next) {
-  var responseObject = { items: [] };
-  var trainedImageUrls = {};
+  var images = [];
+  var trained_images = {};
 
   db.selectLabel(function(result) {
     if (result.err) {
       res.json({
-        message: "GET untrianed images error",
+        message: "GET untrained images error.",
         err: result.err
       });
     }
 
     result.forEach(function(row) {
-      trainedImageUrls[row["image_url"]] = true;
+      trained_images[row["image_url"]] = true;
     });
 
     aws.listObjects(function(data) {
       if (data.err) {
         res.json({
-          message: "GET untrianed images error",
+          message: "GET untrained images error.",
           err: result.err
         });
       }
 
       data.forEach(function(content) {
-        if (trainedImageUrls[content.Key]) {
+        if (trained_images[content.Key]) {
           return;
         }
-        responseObject.items.push({
+        images.push({
           untrained: true,
           image_url:
             "https://s3.amazonaws.com/" +
@@ -44,7 +44,7 @@ router.get("/untrained", function(req, res, next) {
       });
 
       res.setHeader("Access-Control-Allow-Origin", "*");
-      res.json(responseObject);
+      res.json({images: images});
     });
   });
 });
@@ -73,7 +73,7 @@ router.get("/", function(req, res, next) {
 
       total = data.length;
 
-      responseObject = calculatRatios(total, trained);
+      let responseObject = calculatRatios(total, trained);
       responseObject.images = [];
 
       res.setHeader("Access-Control-Allow-Origin", "*");
@@ -83,7 +83,7 @@ router.get("/", function(req, res, next) {
 });
 
 router.post("/", function(req, res, next) {
-  aws.getSignedUrl(req.query.extension, req.query.content_type, function(url) {
+  aws.getSignedUrl(req.body.extension, req.body.content_type, function(url) {
     if (url.err) {
       console.error("Error generating signed URL from S3.");
       res.json({

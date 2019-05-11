@@ -11,7 +11,7 @@ router.post("/", function(req, res, next) {
     return;
   }
   let label = {
-    image_url: req.body.image.split("/").pop(),
+    image_url: req.body.image_url.split("/").pop(),
     food_label: req.body.food_label,
     spicy_label: req.body.spicy_label
   };
@@ -23,7 +23,7 @@ router.post("/", function(req, res, next) {
       });
     } else {
       res.setHeader("Access-Control-Allow-Origin", "*"); // do we need this?
-      res.json(result);
+      res.json({label: result});
     }
   });
 });

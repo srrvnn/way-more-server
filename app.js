@@ -16,16 +16,4 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/labels", require("./routes/labels"));
 app.use("/images", require("./routes/images"));
 
-// Use GET images/untrained
-app.get("/train", function(req, res) {});
-
-// Use GET images
-app.get("/corpus", function(req, res) {});
-
-// Use POST labels/
-app.post("/save", function(req, res, next) {});
-
-// use GET aws/signed
-app.get("/s3signedurl", function(req, res) {});
-
 module.exports = app;
