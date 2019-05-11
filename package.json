@@ -1,5 +1,5 @@
 {
-  "name": "way-more-server",
+  "name": "waymo-server",
   "version": "0.0.0",
   "private": true,
   "scripts": {
